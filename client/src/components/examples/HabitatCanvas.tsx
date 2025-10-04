@@ -11,6 +11,8 @@ export default function HabitatCanvasExample() {
       health: 100,
       isConnected: true,
       isDamaged: false,
+      protectionBonus: 0,
+      isSmall: false,
     },
     {
       id: '2',
@@ -19,6 +21,8 @@ export default function HabitatCanvasExample() {
       health: 85,
       isConnected: true,
       isDamaged: false,
+      protectionBonus: 0,
+      isSmall: false,
     },
   ]);
   
@@ -57,6 +61,11 @@ export default function HabitatCanvasExample() {
           gridSize={60}
           isSimulationMode={false}
           isConnectingMode={false}
+          onUpdateProtection={(id, bonus) => {
+            setBuildings(buildings.map(b => 
+              b.id === id ? { ...b, protectionBonus: bonus } : b
+            ));
+          }}
           onAddBuilding={(pos) => {
             if (!selectedType) return;
             const newBuilding: Building = {
@@ -66,6 +75,8 @@ export default function HabitatCanvasExample() {
               health: 100,
               isConnected: false,
               isDamaged: false,
+              protectionBonus: 0,
+              isSmall: selectedType === 'protection_module',
             };
             setBuildings([...buildings, newBuilding]);
             console.log('Added building:', newBuilding);

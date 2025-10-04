@@ -25,7 +25,8 @@ export const buildingTypeSchema = z.enum([
   "waste_management",
   "communication_tower",
   "energy_generator",
-  "mineral_drill"
+  "mineral_drill",
+  "protection_module"
 ]);
 
 export type BuildingType = z.infer<typeof buildingTypeSchema>;
@@ -46,6 +47,8 @@ export const buildingSchema = z.object({
   health: z.number().min(0).max(100).default(100),
   isConnected: z.boolean().default(false),
   isDamaged: z.boolean().default(false),
+  protectionBonus: z.number().default(0),
+  isSmall: z.boolean().default(false),
 });
 
 export type Building = z.infer<typeof buildingSchema>;

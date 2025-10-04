@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import { Home, Utensils, Droplet, Trash2, Radio, Trash, Zap, Pickaxe } from "lucide-react";
+import { useRef, useState, useEffect } from "react";
+import { Home, Utensils, Droplet, Trash2, Radio, Trash, Zap, Pickaxe, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Building, BuildingType, Pipe } from "@shared/schema";
 
@@ -11,6 +11,7 @@ interface HabitatCanvasProps {
   onMoveBuilding: (id: string, position: { x: number; y: number }) => void;
   onDeleteBuilding: (id: string) => void;
   onConnectBuildings: (from: string, to: string) => void;
+  onUpdateProtection: (buildingId: string, bonus: number) => void;
   gridSize: number;
   isSimulationMode: boolean;
   isConnectingMode: boolean;
@@ -24,6 +25,7 @@ const buildingIcons: Record<BuildingType, React.ElementType> = {
   communication_tower: Radio,
   energy_generator: Zap,
   mineral_drill: Pickaxe,
+  protection_module: Shield,
 };
 
 const buildingColors: Record<BuildingType, string> = {
@@ -34,6 +36,7 @@ const buildingColors: Record<BuildingType, string> = {
   communication_tower: "bg-purple-600",
   energy_generator: "bg-yellow-600",
   mineral_drill: "bg-orange-700",
+  protection_module: "bg-blue-600",
 };
 
 export default function HabitatCanvas({
@@ -44,6 +47,7 @@ export default function HabitatCanvas({
   onMoveBuilding,
   onDeleteBuilding,
   onConnectBuildings,
+  onUpdateProtection,
   gridSize,
   isSimulationMode,
   isConnectingMode,
@@ -52,6 +56,30 @@ export default function HabitatCanvas({
   const [draggingBuilding, setDraggingBuilding] = useState<string | null>(null);
   const [connectingFrom, setConnectingFrom] = useState<string | null>(null);
   const [hoveredBuilding, setHoveredBuilding] = useState<string | null>(null);
+
+  useEffect(() => {
+    const protectionModules = buildings.filter(b => b.type === 'protection_module');
+    const regularBuildings = buildings.filter(b => b.type !== 'protection_module');
+    
+    regularBuildings.forEach(building => {
+      let protectionBonus = 0;
+      
+      protectionModules.forEach(module => {
+        const distance = Math.sqrt(
+          Math.pow(building.position.x - module.position.x, 2) + 
+          Math.pow(building.position.y - module.position.y, 2)
+        );
+        
+        if (distance <= gridSize * 2) {
+          protectionBonus += 20;
+        }
+      });
+      
+      if (building.protectionBonus !== protectionBonus) {
+        onUpdateProtection(building.id, protectionBonus);
+      }
+    });
+  }, [buildings, gridSize, onUpdateProtection]);
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (isSimulationMode || (!selectedBuildingType && !isConnectingMode)) return;
@@ -173,6 +201,8 @@ export default function HabitatCanvas({
         const isBeingDragged = draggingBuilding === building.id;
         const isConnecting = connectingFrom === building.id;
         const isHovered = hoveredBuilding === building.id;
+        const isSmall = building.type === 'protection_module';
+        const size = isSmall ? gridSize / 2 : gridSize;
         
         return (
           <div
@@ -183,8 +213,8 @@ export default function HabitatCanvas({
             style={{
               left: building.position.x,
               top: building.position.y,
-              width: gridSize,
-              height: gridSize,
+              width: size,
+              height: size,
             }}
             onMouseDown={(e) => !isConnectingMode && handleBuildingMouseDown(e, building.id)}
             onClick={(e) => handleBuildingClick(e, building.id)}
@@ -195,11 +225,13 @@ export default function HabitatCanvas({
             <div
               className={`w-full h-full rounded-md ${buildingColors[building.type]} ${
                 isConnecting ? "ring-4 ring-primary" : ""
-              } ${isHovered && isConnectingMode ? "ring-2 ring-primary/50" : isHovered ? "ring-2 ring-foreground/30" : ""} flex items-center justify-center relative overflow-visible ${
+              } ${isHovered && isConnectingMode ? "ring-2 ring-primary/50" : isHovered ? "ring-2 ring-foreground/30" : ""} ${
+                building.protectionBonus > 0 ? "ring-2 ring-blue-400" : ""
+              } flex items-center justify-center relative overflow-visible ${
                 isConnectingMode ? "cursor-crosshair" : ""
               }`}
             >
-              <Icon className="w-8 h-8 text-white" />
+              <Icon className={`${isSmall ? "w-4 h-4" : "w-8 h-8"} text-white`} />
               
               {building.isDamaged && (
                 <div className="absolute inset-0 bg-destructive/30 rounded-md">
@@ -210,15 +242,23 @@ export default function HabitatCanvas({
                 </div>
               )}
               
-              <div
-                className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${
-                  building.health >= 70
-                    ? "bg-green-500"
-                    : building.health >= 40
-                    ? "bg-amber-500"
-                    : "bg-destructive"
-                }`}
-              />
+              {!isSmall && (
+                <div
+                  className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${
+                    building.health >= 70
+                      ? "bg-green-500"
+                      : building.health >= 40
+                      ? "bg-amber-500"
+                      : "bg-destructive"
+                  }`}
+                />
+              )}
+              
+              {building.protectionBonus > 0 && !isSmall && (
+                <div className="absolute -bottom-1 -left-1 bg-blue-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                  +
+                </div>
+              )}
               
               {isHovered && !isSimulationMode && (
                 <Button

@@ -1,4 +1,4 @@
-import { Home, Utensils, Droplet, Trash2, Radio, Zap, Pickaxe } from "lucide-react";
+import { Home, Utensils, Droplet, Trash2, Radio, Zap, Pickaxe, Shield } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { BuildingType } from "@shared/schema";
@@ -60,6 +60,13 @@ const buildings: BuildingInfo[] = [
     icon: Radio,
     color: "bg-purple-600",
     requirements: ["Power"],
+  },
+  {
+    type: "protection_module",
+    name: "Protection Module",
+    icon: Shield,
+    color: "bg-blue-600",
+    requirements: ["Minerals"],
   },
 ];
 

@@ -29,6 +29,8 @@ export default function Home() {
       health: 100,
       isConnected: false,
       isDamaged: false,
+      protectionBonus: 0,
+      isSmall: selectedBuildingType === 'protection_module',
     };
 
     setBuildings([...buildings, newBuilding]);
@@ -77,19 +79,27 @@ export default function Home() {
     }
   };
 
+  const handleUpdateProtection = (buildingId: string, bonus: number) => {
+    setBuildings(
+      buildings.map((b) => (b.id === buildingId ? { ...b, protectionBonus: bonus } : b))
+    );
+  };
+
   const handleTriggerDisaster = (type: DisasterType, intensity: number) => {
-    const affectedCount = Math.floor((buildings.length * intensity) / 100);
-    const shuffled = [...buildings].sort(() => Math.random() - 0.5);
+    const regularBuildings = buildings.filter(b => b.type !== 'protection_module');
+    const affectedCount = Math.floor((regularBuildings.length * intensity) / 100);
+    const shuffled = [...regularBuildings].sort(() => Math.random() - 0.5);
     const affected = shuffled.slice(0, Math.max(1, affectedCount));
 
     setBuildings(
       buildings.map((b) => {
         if (affected.find((a) => a.id === b.id)) {
-          const damage = Math.random() * intensity;
+          const baseDamage = Math.random() * intensity;
+          const actualDamage = Math.max(0, baseDamage - b.protectionBonus);
           return {
             ...b,
-            health: Math.max(0, b.health - damage),
-            isDamaged: damage > 30,
+            health: Math.max(0, b.health - actualDamage),
+            isDamaged: actualDamage > 30,
           };
         }
         return b;
@@ -200,6 +210,7 @@ export default function Home() {
             onMoveBuilding={handleMoveBuilding}
             onDeleteBuilding={handleDeleteBuilding}
             onConnectBuildings={handleConnectBuildings}
+            onUpdateProtection={handleUpdateProtection}
             gridSize={gridSize}
             isSimulationMode={isSimulationMode}
             isConnectingMode={isConnectingMode}
