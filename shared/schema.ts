@@ -49,9 +49,53 @@ export const buildingSchema = z.object({
   isDamaged: z.boolean().default(false),
   protectionBonus: z.number().default(0),
   isSmall: z.boolean().default(false),
+  connectedBuildingIds: z.array(z.string()).default([]),
 });
 
 export type Building = z.infer<typeof buildingSchema>;
+
+// Resource system
+export interface ResourceProduction {
+  energy: number;
+  food: number;
+  minerals: number;
+  water: number;
+}
+
+export const BUILDING_RESOURCES: Record<BuildingType, { produces: ResourceProduction; consumes: ResourceProduction }> = {
+  house: {
+    produces: { energy: 0, food: 0, minerals: 0, water: 0 },
+    consumes: { energy: 2, food: 1, minerals: 0, water: 1 },
+  },
+  food_station: {
+    produces: { energy: 0, food: 5, minerals: 0, water: 0 },
+    consumes: { energy: 2, food: 0, minerals: 0, water: 1 },
+  },
+  water_drill: {
+    produces: { energy: 0, food: 0, minerals: 0, water: 10 },
+    consumes: { energy: 3, food: 0, minerals: 0, water: 0 },
+  },
+  waste_management: {
+    produces: { energy: 0, food: 0, minerals: 0, water: 0 },
+    consumes: { energy: 1, food: 0, minerals: 0, water: 0 },
+  },
+  communication_tower: {
+    produces: { energy: 0, food: 0, minerals: 0, water: 0 },
+    consumes: { energy: 2, food: 0, minerals: 0, water: 0 },
+  },
+  energy_generator: {
+    produces: { energy: 10, food: 0, minerals: 0, water: 0 },
+    consumes: { energy: 0, food: 0, minerals: 1, water: 0 },
+  },
+  mineral_drill: {
+    produces: { energy: 0, food: 0, minerals: 8, water: 0 },
+    consumes: { energy: 2, food: 0, minerals: 0, water: 0 },
+  },
+  protection_module: {
+    produces: { energy: 0, food: 0, minerals: 0, water: 0 },
+    consumes: { energy: 0, food: 0, minerals: 0, water: 0 },
+  },
+};
 
 // Pipe connection between buildings
 export const pipeSchema = z.object({

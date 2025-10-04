@@ -1,12 +1,12 @@
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Droplet, Utensils, Trash2, Zap } from "lucide-react";
+import { Droplet, Utensils, Trash2, Zap, Pickaxe } from "lucide-react";
 
 interface ResourceStats {
   water: number;
   food: number;
-  waste: number;
+  minerals: number;
   energy: number;
 }
 
@@ -18,17 +18,17 @@ interface ResourcePanelProps {
 
 export default function ResourcePanel({ stats, connectedBuildings, totalBuildings }: ResourcePanelProps) {
   const resources = [
-    { name: "Water", value: stats.water, icon: Droplet, color: "text-cyan-400" },
-    { name: "Food", value: stats.food, icon: Utensils, color: "text-green-400" },
-    { name: "Waste", value: stats.waste, icon: Trash2, color: "text-amber-400" },
-    { name: "Energy", value: stats.energy, icon: Zap, color: "text-purple-400" },
+    { name: "Energy", value: stats.energy, icon: Zap, color: "text-yellow-400", unit: "kW" },
+    { name: "Water", value: stats.water, icon: Droplet, color: "text-cyan-400", unit: "L/h" },
+    { name: "Food", value: stats.food, icon: Utensils, color: "text-green-400", unit: "kg/h" },
+    { name: "Minerals", value: stats.minerals, icon: Pickaxe, color: "text-orange-400", unit: "kg/h" },
   ];
 
   return (
     <div className="h-full flex flex-col bg-sidebar border-l border-sidebar-border">
       <div className="p-4 border-b border-sidebar-border">
         <h2 className="text-lg font-semibold text-sidebar-foreground">Resource Status</h2>
-        <p className="text-xs text-muted-foreground mt-1">Colony resource levels</p>
+        <p className="text-xs text-muted-foreground mt-1">Net production/consumption</p>
       </div>
       
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -44,11 +44,8 @@ export default function ResourcePanel({ stats, connectedBuildings, totalBuilding
 
         {resources.map((resource) => {
           const Icon = resource.icon;
-          const getVariant = (value: number) => {
-            if (value >= 70) return "default";
-            if (value >= 40) return "secondary";
-            return "destructive";
-          };
+          const isPositive = resource.value >= 0;
+          const isNeutral = resource.value === 0;
           
           return (
             <Card key={resource.name} className="p-4" data-testid={`card-resource-${resource.name.toLowerCase()}`}>
@@ -57,13 +54,16 @@ export default function ResourcePanel({ stats, connectedBuildings, totalBuilding
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-card-foreground">{resource.name}</span>
-                    <span className="text-sm font-mono text-muted-foreground">{resource.value}%</span>
+                    <span className={`text-sm font-mono font-semibold ${
+                      isNeutral ? "text-muted-foreground" : isPositive ? "text-green-400" : "text-red-400"
+                    }`}>
+                      {isPositive && !isNeutral ? "+" : ""}{resource.value} {resource.unit}
+                    </span>
                   </div>
                 </div>
               </div>
-              <Progress value={resource.value} className="h-2" />
-              <p className="text-xs text-muted-foreground mt-2">
-                {resource.value >= 70 ? "Optimal" : resource.value >= 40 ? "Adequate" : "Critical"}
+              <p className="text-xs text-muted-foreground">
+                {isNeutral ? "Balanced" : isPositive ? "Surplus" : "Deficit"}
               </p>
             </Card>
           );

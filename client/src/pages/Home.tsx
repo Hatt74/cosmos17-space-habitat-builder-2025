@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import BuildingPalette from "@/components/BuildingPalette";
 import HabitatCanvas from "@/components/HabitatCanvas";
 import ResourcePanel from "@/components/ResourcePanel";
@@ -6,7 +6,8 @@ import SimulationControls from "@/components/SimulationControls";
 import ModeToggle from "@/components/ModeToggle";
 import { Button } from "@/components/ui/button";
 import { Save, Download, Upload, Info, Cable } from "lucide-react";
-import type { Building, BuildingType, Pipe, DisasterType } from "@shared/schema";
+import type { Building, BuildingType, Pipe, DisasterType, ResourceProduction } from "@shared/schema";
+import { BUILDING_RESOURCES } from "@shared/schema";
 
 export default function Home() {
   const [buildings, setBuildings] = useState<Building[]>([]);
@@ -31,6 +32,7 @@ export default function Home() {
       isDamaged: false,
       protectionBonus: 0,
       isSmall: selectedBuildingType === 'protection_module',
+      connectedBuildingIds: [],
     };
 
     setBuildings([...buildings, newBuilding]);
@@ -70,14 +72,52 @@ export default function Home() {
         isDamaged: false,
       };
       setPipes([...pipes, newPipe]);
-      
-      setBuildings(
-        buildings.map((b) =>
-          b.id === from || b.id === to ? { ...b, isConnected: true } : b
-        )
-      );
     }
   };
+
+  useEffect(() => {
+    const buildingConnections = new Map<string, Set<string>>();
+    buildings.forEach(b => buildingConnections.set(b.id, new Set()));
+
+    pipes.forEach(pipe => {
+      buildingConnections.get(pipe.from)?.add(pipe.to);
+      buildingConnections.get(pipe.to)?.add(pipe.from);
+    });
+
+    const findConnectedNetwork = (startId: string): Set<string> => {
+      const visited = new Set<string>();
+      const queue = [startId];
+
+      while (queue.length > 0) {
+        const current = queue.shift()!;
+        if (visited.has(current)) continue;
+        visited.add(current);
+
+        const neighbors = buildingConnections.get(current);
+        if (neighbors) {
+          neighbors.forEach(neighbor => {
+            if (!visited.has(neighbor)) {
+              queue.push(neighbor);
+            }
+          });
+        }
+      }
+
+      return visited;
+    };
+
+    setBuildings(prevBuildings =>
+      prevBuildings.map(building => {
+        const connectedNetwork = findConnectedNetwork(building.id);
+        const isConnected = connectedNetwork.size > 1;
+        return {
+          ...building,
+          isConnected,
+          connectedBuildingIds: Array.from(connectedNetwork).filter(id => id !== building.id),
+        };
+      })
+    );
+  }, [pipes]);
 
   const handleUpdateProtection = (buildingId: string, bonus: number) => {
     setBuildings(
@@ -94,7 +134,19 @@ export default function Home() {
     setBuildings(
       buildings.map((b) => {
         if (affected.find((a) => a.id === b.id)) {
-          const baseDamage = Math.random() * intensity;
+          const nearbyBuildings = regularBuildings.filter(other => {
+            if (other.id === b.id) return false;
+            const distance = Math.sqrt(
+              Math.pow(b.position.x - other.position.x, 2) +
+              Math.pow(b.position.y - other.position.y, 2)
+            );
+            return distance <= gridSize * 2;
+          });
+
+          const isolationPenalty = nearbyBuildings.length === 0 ? 1.5 : 
+                                   nearbyBuildings.length === 1 ? 1.25 : 1.0;
+
+          const baseDamage = Math.random() * intensity * isolationPenalty;
           const actualDamage = Math.max(0, baseDamage - b.protectionBonus);
           return {
             ...b,
@@ -139,12 +191,57 @@ export default function Home() {
 
   const connectedBuildings = buildings.filter((b) => b.isConnected).length;
   
-  const stats = {
-    water: Math.min(100, (buildings.filter((b) => b.type === "water_drill").length / Math.max(1, buildings.length)) * 200),
-    food: Math.min(100, (buildings.filter((b) => b.type === "food_station").length / Math.max(1, buildings.length)) * 200),
-    waste: Math.min(100, (buildings.filter((b) => b.type === "waste_management").length / Math.max(1, buildings.length)) * 150),
-    energy: Math.min(100, (buildings.filter((b) => b.type === "energy_generator").length / Math.max(1, buildings.length)) * 180),
+  const calculateResources = (): { energy: number; water: number; food: number; minerals: number } => {
+    const networks = new Map<string, Set<string>>();
+    
+    buildings.forEach(b => {
+      if (!networks.has(b.id)) {
+        const network = new Set([b.id, ...b.connectedBuildingIds]);
+        network.forEach(id => networks.set(id, network));
+      }
+    });
+
+    const totals = { energy: 0, water: 0, food: 0, minerals: 0 };
+
+    buildings.forEach(building => {
+      const resources = BUILDING_RESOURCES[building.type];
+      const network = networks.get(building.id) || new Set([building.id]);
+      
+      if (building.health > 0) {
+        const hasRequiredResources = Object.entries(resources.consumes).every(([resource, amount]) => {
+          if (amount === 0) return true;
+          
+          const networkProduction = Array.from(network)
+            .map(id => buildings.find(b => b.id === id))
+            .filter((b): b is Building => b !== undefined && b.health > 0)
+            .reduce((sum, b) => {
+              const prod = BUILDING_RESOURCES[b.type].produces[resource as keyof ResourceProduction];
+              return sum + prod;
+            }, 0);
+          
+          return networkProduction > 0;
+        });
+
+        if (hasRequiredResources || network.size === 1) {
+          totals.energy += resources.produces.energy;
+          totals.water += resources.produces.water;
+          totals.food += resources.produces.food;
+          totals.minerals += resources.produces.minerals;
+          
+          if (network.size > 1 || resources.consumes.energy === 0) {
+            totals.energy -= resources.consumes.energy;
+            totals.water -= resources.consumes.water;
+            totals.food -= resources.consumes.food;
+            totals.minerals -= resources.consumes.minerals;
+          }
+        }
+      }
+    });
+
+    return totals;
   };
+
+  const stats = calculateResources();
 
   return (
     <div className="flex h-screen bg-background">

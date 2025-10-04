@@ -13,6 +13,7 @@ export default function HabitatCanvasExample() {
       isDamaged: false,
       protectionBonus: 0,
       isSmall: false,
+      connectedBuildingIds: ['2'],
     },
     {
       id: '2',
@@ -23,6 +24,7 @@ export default function HabitatCanvasExample() {
       isDamaged: false,
       protectionBonus: 0,
       isSmall: false,
+      connectedBuildingIds: ['1'],
     },
   ]);
   
@@ -77,6 +79,7 @@ export default function HabitatCanvasExample() {
               isDamaged: false,
               protectionBonus: 0,
               isSmall: selectedType === 'protection_module',
+              connectedBuildingIds: [],
             };
             setBuildings([...buildings, newBuilding]);
             console.log('Added building:', newBuilding);
