@@ -1,4 +1,4 @@
-import { Home, Utensils, Droplet, Trash2, Radio } from "lucide-react";
+import { Home, Utensils, Droplet, Trash2, Radio, Zap, Pickaxe } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { BuildingType } from "@shared/schema";
@@ -20,6 +20,13 @@ const buildings: BuildingInfo[] = [
     requirements: ["Water", "Power"],
   },
   {
+    type: "energy_generator",
+    name: "Energy Generator",
+    icon: Zap,
+    color: "bg-yellow-600",
+    requirements: ["Minerals"],
+  },
+  {
     type: "food_station",
     name: "Food Station",
     icon: Utensils,
@@ -31,6 +38,13 @@ const buildings: BuildingInfo[] = [
     name: "Water Drill",
     icon: Droplet,
     color: "bg-cyan-600",
+    requirements: ["Power"],
+  },
+  {
+    type: "mineral_drill",
+    name: "Mineral Drill",
+    icon: Pickaxe,
+    color: "bg-orange-700",
     requirements: ["Power"],
   },
   {

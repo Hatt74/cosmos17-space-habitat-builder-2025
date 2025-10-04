@@ -23,7 +23,9 @@ export const buildingTypeSchema = z.enum([
   "food_station",
   "water_drill",
   "waste_management",
-  "communication_tower"
+  "communication_tower",
+  "energy_generator",
+  "mineral_drill"
 ]);
 
 export type BuildingType = z.infer<typeof buildingTypeSchema>;

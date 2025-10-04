@@ -5,7 +5,7 @@ import ResourcePanel from "@/components/ResourcePanel";
 import SimulationControls from "@/components/SimulationControls";
 import ModeToggle from "@/components/ModeToggle";
 import { Button } from "@/components/ui/button";
-import { Save, Download, Upload, Info } from "lucide-react";
+import { Save, Download, Upload, Info, Cable } from "lucide-react";
 import type { Building, BuildingType, Pipe, DisasterType } from "@shared/schema";
 
 export default function Home() {
@@ -15,6 +15,7 @@ export default function Home() {
   const [isSimulationMode, setIsSimulationMode] = useState(false);
   const [isSimulating, setIsSimulating] = useState(false);
   const [buildingZoneRadius, setBuildingZoneRadius] = useState(300);
+  const [isConnectingMode, setIsConnectingMode] = useState(false);
 
   const gridSize = 60;
 
@@ -132,7 +133,7 @@ export default function Home() {
     water: Math.min(100, (buildings.filter((b) => b.type === "water_drill").length / Math.max(1, buildings.length)) * 200),
     food: Math.min(100, (buildings.filter((b) => b.type === "food_station").length / Math.max(1, buildings.length)) * 200),
     waste: Math.min(100, (buildings.filter((b) => b.type === "waste_management").length / Math.max(1, buildings.length)) * 150),
-    energy: Math.min(100, (buildings.filter((b) => b.type === "communication_tower").length / Math.max(1, buildings.length)) * 180),
+    energy: Math.min(100, (buildings.filter((b) => b.type === "energy_generator").length / Math.max(1, buildings.length)) * 180),
   };
 
   return (
@@ -152,6 +153,7 @@ export default function Home() {
               isSimulationMode={isSimulationMode}
               onToggle={() => {
                 setIsSimulationMode(!isSimulationMode);
+                setIsConnectingMode(false);
                 if (!isSimulationMode) {
                   setSelectedBuildingType(null);
                 }
@@ -160,6 +162,20 @@ export default function Home() {
           </div>
           
           <div className="flex items-center gap-2">
+            {!isSimulationMode && (
+              <Button 
+                variant={isConnectingMode ? "default" : "outline"} 
+                size="sm" 
+                onClick={() => {
+                  setIsConnectingMode(!isConnectingMode);
+                  setSelectedBuildingType(null);
+                }}
+                data-testid="button-connect-pipes"
+              >
+                <Cable className="w-4 h-4 mr-2" />
+                {isConnectingMode ? "Connecting..." : "Connect Pipes"}
+              </Button>
+            )}
             <Button variant="outline" size="sm" data-testid="button-save">
               <Save className="w-4 h-4 mr-2" />
               Save
@@ -186,6 +202,7 @@ export default function Home() {
             onConnectBuildings={handleConnectBuildings}
             gridSize={gridSize}
             isSimulationMode={isSimulationMode}
+            isConnectingMode={isConnectingMode}
           />
         </div>
 
@@ -194,6 +211,15 @@ export default function Home() {
             <p className="text-sm text-foreground flex items-center gap-2">
               <Info className="w-4 h-4 text-primary" />
               Click on the canvas to place your {selectedBuildingType.replace('_', ' ')}
+            </p>
+          </div>
+        )}
+        
+        {!isSimulationMode && isConnectingMode && (
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-card border border-border rounded-lg px-4 py-2 shadow-lg">
+            <p className="text-sm text-foreground flex items-center gap-2">
+              <Cable className="w-4 h-4 text-primary" />
+              Click on two buildings to connect them with a pipe
             </p>
           </div>
         )}

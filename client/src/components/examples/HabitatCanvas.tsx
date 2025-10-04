@@ -56,6 +56,7 @@ export default function HabitatCanvasExample() {
           selectedBuildingType={selectedType}
           gridSize={60}
           isSimulationMode={false}
+          isConnectingMode={false}
           onAddBuilding={(pos) => {
             if (!selectedType) return;
             const newBuilding: Building = {

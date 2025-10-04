@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Home, Utensils, Droplet, Trash2, Radio, Trash } from "lucide-react";
+import { Home, Utensils, Droplet, Trash2, Radio, Trash, Zap, Pickaxe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Building, BuildingType, Pipe } from "@shared/schema";
 
@@ -13,6 +13,7 @@ interface HabitatCanvasProps {
   onConnectBuildings: (from: string, to: string) => void;
   gridSize: number;
   isSimulationMode: boolean;
+  isConnectingMode: boolean;
 }
 
 const buildingIcons: Record<BuildingType, React.ElementType> = {
@@ -21,6 +22,8 @@ const buildingIcons: Record<BuildingType, React.ElementType> = {
   water_drill: Droplet,
   waste_management: Trash2,
   communication_tower: Radio,
+  energy_generator: Zap,
+  mineral_drill: Pickaxe,
 };
 
 const buildingColors: Record<BuildingType, string> = {
@@ -29,6 +32,8 @@ const buildingColors: Record<BuildingType, string> = {
   water_drill: "bg-cyan-600",
   waste_management: "bg-amber-700",
   communication_tower: "bg-purple-600",
+  energy_generator: "bg-yellow-600",
+  mineral_drill: "bg-orange-700",
 };
 
 export default function HabitatCanvas({
@@ -41,6 +46,7 @@ export default function HabitatCanvas({
   onConnectBuildings,
   gridSize,
   isSimulationMode,
+  isConnectingMode,
 }: HabitatCanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [draggingBuilding, setDraggingBuilding] = useState<string | null>(null);
@@ -48,7 +54,7 @@ export default function HabitatCanvas({
   const [hoveredBuilding, setHoveredBuilding] = useState<string | null>(null);
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (isSimulationMode || !selectedBuildingType) return;
+    if (isSimulationMode || (!selectedBuildingType && !isConnectingMode)) return;
     
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
@@ -84,6 +90,8 @@ export default function HabitatCanvas({
 
   const handleBuildingClick = (e: React.MouseEvent, buildingId: string) => {
     e.stopPropagation();
+    
+    if (!isConnectingMode) return;
     
     if (connectingFrom === null) {
       setConnectingFrom(buildingId);
@@ -178,7 +186,7 @@ export default function HabitatCanvas({
               width: gridSize,
               height: gridSize,
             }}
-            onMouseDown={(e) => handleBuildingMouseDown(e, building.id)}
+            onMouseDown={(e) => !isConnectingMode && handleBuildingMouseDown(e, building.id)}
             onClick={(e) => handleBuildingClick(e, building.id)}
             onMouseEnter={() => setHoveredBuilding(building.id)}
             onMouseLeave={() => setHoveredBuilding(null)}
@@ -187,7 +195,9 @@ export default function HabitatCanvas({
             <div
               className={`w-full h-full rounded-md ${buildingColors[building.type]} ${
                 isConnecting ? "ring-4 ring-primary" : ""
-              } ${isHovered ? "ring-2 ring-foreground/30" : ""} flex items-center justify-center relative overflow-visible`}
+              } ${isHovered && isConnectingMode ? "ring-2 ring-primary/50" : isHovered ? "ring-2 ring-foreground/30" : ""} flex items-center justify-center relative overflow-visible ${
+                isConnectingMode ? "cursor-crosshair" : ""
+              }`}
             >
               <Icon className="w-8 h-8 text-white" />
               
